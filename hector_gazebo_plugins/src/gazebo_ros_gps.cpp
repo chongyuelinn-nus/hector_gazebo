@@ -211,13 +211,13 @@ void GazeboRosGps::dynamicReconfigureCallback(GazeboRosGps::GNSSConfig &config, 
 // Update the controller
 void GazeboRosGps::Update()
 {
-  common::Time sim_time = world->GetSimTime();
+  common::Time sim_time = world->SimTime();
   double dt = updateTimer.getTimeSinceLastUpdate().Double();
 
-  math::Pose pose = link->GetWorldPose();
+  ignition::math::Pose3d pose = link->GetWorldPose();
 
-  gazebo::math::Vector3 velocity = velocity_error_model_(link->GetWorldLinearVel(), dt);
-  gazebo::math::Vector3 position = position_error_model_(pose.pos, dt);
+  ignition::math::Vector3d velocity = velocity_error_model_(link->GetWorldLinearVel(), dt);
+  ignition::math::Vector3d position = position_error_model_(pose.pos, dt);
 
   // An offset error in the velocity is integrated into the position error for the next timestep.
   // Note: Usually GNSS receivers have almost no drift in the velocity signal.
@@ -226,12 +226,12 @@ void GazeboRosGps::Update()
   fix_.header.stamp = ros::Time(sim_time.sec, sim_time.nsec);
   velocity_.header.stamp = fix_.header.stamp;
 
-  fix_.latitude  = reference_latitude_  + ( cos(reference_heading_) * position.x + sin(reference_heading_) * position.y) / radius_north_ * 180.0/M_PI;
-  fix_.longitude = reference_longitude_ - (-sin(reference_heading_) * position.x + cos(reference_heading_) * position.y) / radius_east_  * 180.0/M_PI;
+  fix_.latitude  = reference_latitude_  + ( cos(reference_heading_) * position.x + sin(reference_heading_) * position.Y()) / radius_north_ * 180.0/M_PI;
+  fix_.longitude = reference_longitude_ - (-sin(reference_heading_) * position.x + cos(reference_heading_) * position.Y()) / radius_east_  * 180.0/M_PI;
   fix_.altitude  = reference_altitude_  + position.z;
-  velocity_.vector.x =  cos(reference_heading_) * velocity.x + sin(reference_heading_) * velocity.y;
-  velocity_.vector.y = -sin(reference_heading_) * velocity.x + cos(reference_heading_) * velocity.y;
-  velocity_.vector.z = velocity.z;
+  velocity_.vector.x =  cos(reference_heading_) * velocity.X() + sin(reference_heading_) * velocity.Y();
+  velocity_.vector.y = -sin(reference_heading_) * velocity.X() + cos(reference_heading_) * velocity.Y();
+  velocity_.vector.z = velocity.Z();
 
   fix_.position_covariance_type = sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
   fix_.position_covariance[0] = position_error_model_.drift.x*position_error_model_.drift.x + position_error_model_.gaussian_noise.x*position_error_model_.gaussian_noise.x;

@@ -90,11 +90,11 @@ void ServoPlugin::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   if (_sdf->HasElement("topicName")) topicName = _sdf->Get<std::string>("topicName");
   if (_sdf->HasElement("jointStateName")) jointStateName = _sdf->Get<std::string>("jointStateName");
   if (_sdf->HasElement("firstServoName")) servo[FIRST].name = _sdf->Get<std::string>("firstServoName");
-  if (_sdf->HasElement("firstServoAxis")) servo[FIRST].axis = _sdf->Get<math::Vector3>("firstServoAxis");
+  if (_sdf->HasElement("firstServoAxis")) servo[FIRST].axis = _sdf->Get<ignition::math::Vector3d>("firstServoAxis");
   if (_sdf->HasElement("secondServoName")) servo[SECOND].name = _sdf->Get<std::string>("secondServoName");
-  if (_sdf->HasElement("secondServoAxis")) servo[SECOND].axis = _sdf->Get<math::Vector3>("secondServoAxis");
+  if (_sdf->HasElement("secondServoAxis")) servo[SECOND].axis = _sdf->Get<ignition::math::Vector3d>("secondServoAxis");
   if (_sdf->HasElement("thirdServoName")) servo[THIRD].name = _sdf->Get<std::string>("thirdServoName");
-  if (_sdf->HasElement("thirdServoAxis")) servo[THIRD].axis = _sdf->Get<math::Vector3>("thirdServoAxis");
+  if (_sdf->HasElement("thirdServoAxis")) servo[THIRD].axis = _sdf->Get<ignition::math::Vector3d>("thirdServoAxis");
   if (_sdf->HasElement("proportionalControllerGain")) proportionalControllerGain = _sdf->Get<double>("proportionalControllerGain");
   if (_sdf->HasElement("derivativeControllerGain")) derivativeControllerGain = _sdf->Get<double>("derivativeControllerGain");
   if (_sdf->HasElement("maxVelocity")) maximumVelocity = _sdf->Get<double>("maxVelocity");
@@ -173,7 +173,7 @@ void ServoPlugin::Reset()
   servo[SECOND].velocity = 0;
   servo[THIRD].velocity = 0;
 
-  prevUpdateTime = world->GetSimTime();
+  prevUpdateTime = world->SimTime();
 }
 
 // Update the controller
@@ -183,12 +183,12 @@ void ServoPlugin::Update()
   queue_.callAvailable();
 
   common::Time stepTime;
-  stepTime = world->GetSimTime() - prevUpdateTime;
+  stepTime = world->SimTime() - prevUpdateTime;
 
   if (controlPeriod == 0.0 || stepTime > controlPeriod) {
     CalculateVelocities();
     publish_joint_states();
-    prevUpdateTime = world->GetSimTime();
+    prevUpdateTime = world->SimTime();
   }
 
   if (enableMotors)
@@ -265,7 +265,7 @@ void ServoPlugin::CalculateVelocities()
 
   rotation_.Set(current_cmd->quaternion.w, current_cmd->quaternion.x, current_cmd->quaternion.y, current_cmd->quaternion.z);
 
-  math::Quaternion quat(transform.getRotation().getW(),transform.getRotation().getX(),transform.getRotation().getY(),transform.getRotation().getZ());
+  ignition::math::Quaternion quat(transform.getRotation().getW(),transform.getRotation().getX(),transform.getRotation().getY(),transform.getRotation().getZ());
 
   rotation_ = quat * rotation_;
 
@@ -386,8 +386,8 @@ void ServoPlugin::publish_joint_states()
 {
   if (!jointStatePub_) return;
 
-  joint_state.header.stamp.sec = (world->GetSimTime()).sec;
-  joint_state.header.stamp.nsec = (world->GetSimTime()).nsec;
+  joint_state.header.stamp.sec = (world->SimTime()).sec;
+  joint_state.header.stamp.nsec = (world->SimTime()).nsec;
 
   joint_state.name.resize(countOfServos);
   joint_state.position.resize(countOfServos);

@@ -173,7 +173,7 @@ void DiffDrivePlugin6W::Reset()
     wheelSpeed[i] = 0;
   }
 
-  prevUpdateTime = world->GetSimTime();
+  prevUpdateTime = world->SimTime();
 
   x_ = 0;
   rot_ = 0;
@@ -200,8 +200,8 @@ void DiffDrivePlugin6W::Update()
   GetPositionCmd();
 
   //stepTime = World::Instance()->GetPhysicsEngine()->GetStepTime();
-  stepTime = world->GetSimTime() - prevUpdateTime;
-  prevUpdateTime = world->GetSimTime();
+  stepTime = world->SimTime() - prevUpdateTime;
+  prevUpdateTime = world->SimTime();
 
   // Distance travelled by front wheels
   d1 = stepTime.Double() * wheelDiam / 2 * joints[MID_LEFT]->GetVelocity(0);
@@ -306,15 +306,15 @@ void DiffDrivePlugin6W::QueueThread()
 void DiffDrivePlugin6W::publish_odometry()
 {
   // get current time
-  ros::Time current_time_((world->GetSimTime()).sec, (world->GetSimTime()).nsec); 
+  ros::Time current_time_((world->SimTime()).sec, (world->SimTime()).nsec); 
 
   // getting data for base_footprint to odom transform
-  math::Pose pose = link->GetWorldPose();
-  math::Vector3 velocity = link->GetWorldLinearVel();
-  math::Vector3 angular_velocity = link->GetWorldAngularVel();
+  ignition::math::Pose3d pose = link->GetWorldPose();
+  ignition::math::Vector3d velocity = link->GetWorldLinearVel();
+  ignition::math::Vector3d angular_velocity = link->GetWorldAngularVel();
 
-  tf::Quaternion qt(pose.rot.x, pose.rot.y, pose.rot.z, pose.rot.w);
-  tf::Vector3 vt(pose.pos.x, pose.pos.y, pose.pos.z);
+  tf::Quaternion qt(pose.Rot().X(), pose.Rot().Y(), pose.Rot().Z(), pose.Rot().W());
+  tf::Vector3 vt(pose.Rot().X(), pose.Rot().Y(), pose.Rot().Z());
   tf::Transform base_footprint_to_odom(qt, vt);
 
   transform_broadcaster_->sendTransform(tf::StampedTransform(base_footprint_to_odom,

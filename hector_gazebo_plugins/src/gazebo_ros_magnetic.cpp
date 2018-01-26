@@ -153,11 +153,11 @@ void GazeboRosMagnetic::Reset()
 // Update the controller
 void GazeboRosMagnetic::Update()
 {
-  common::Time sim_time = world->GetSimTime();
+  common::Time sim_time = world->SimTime();
   double dt = updateTimer.getTimeSinceLastUpdate().Double();
 
-  math::Pose pose = link->GetWorldPose();
-  math::Vector3 field = sensor_model_(pose.rot.RotateVectorReverse(magnetic_field_world_), dt);
+  ignition::math::Pose3 pose = link->GetWorldPose();
+  ignition::math::Vector3 field = sensor_model_(pose.rot.RotateVectorReverse(magnetic_field_world_), dt);
 
   magnetic_field_.header.stamp = ros::Time(sim_time.sec, sim_time.nsec);
   magnetic_field_.vector.x = field.x;

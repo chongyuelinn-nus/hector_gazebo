@@ -129,17 +129,17 @@ void GazeboRosIMU::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
   }
 
   if (_sdf->HasElement("xyzOffset")) {
-    this->offset_.pos = _sdf->Get<math::Vector3>("xyzOffset");
+    this->offset_.pos = _sdf->Get<ignition::math::Vector3d>("xyzOffset");
   } else {
     ROS_INFO("imu plugin missing <xyzOffset>, defaults to 0s");
-    this->offset_.pos = math::Vector3(0, 0, 0);
+    this->offset_.pos = ignition::math::Vector3d(0, 0, 0);
   }
 
   if (_sdf->HasElement("rpyOffset")) {
-    this->offset_.rot = _sdf->Get<math::Vector3>("rpyOffset");
+    this->offset_.rot = _sdf->Get<ignition::math::Vector3d>("rpyOffset");
   } else {
     ROS_INFO("imu plugin missing <rpyOffset>, defaults to 0s");
-    this->offset_.rot = math::Vector3(0, 0, 0);
+    this->offset_.rot = ignition::math::Vector3d(d0, 0, 0);
   }
 
   // fill in constant covariance matrix
@@ -203,7 +203,7 @@ void GazeboRosIMU::Reset()
 {
   updateTimer.Reset();
 
-  orientation = math::Quaternion();
+  orientation = ignition::math::Quaternion();
   velocity = 0.0;
   accel = 0.0;
 
@@ -218,21 +218,21 @@ bool GazeboRosIMU::ServiceCallback(std_srvs::Empty::Request &req,
                                         std_srvs::Empty::Response &res)
 {
   boost::mutex::scoped_lock scoped_lock(lock);
-  rateModel.reset(math::Vector3(0.0, 0.0, 0.0));
+  rateModel.reset(ignition::math::Vector3d(0.0, 0.0, 0.0));
   return true;
 }
 
 bool GazeboRosIMU::SetAccelBiasCallback(hector_gazebo_plugins::SetBias::Request &req, hector_gazebo_plugins::SetBias::Response &res)
 {
   boost::mutex::scoped_lock scoped_lock(lock);
-  accelModel.reset(math::Vector3(req.bias.x, req.bias.y, req.bias.z));
+  accelModel.reset(ignition::math::Vector3d(req.bias.x, req.bias.y, req.bias.z));
   return true;
 }
 
 bool GazeboRosIMU::SetRateBiasCallback(hector_gazebo_plugins::SetBias::Request &req, hector_gazebo_plugins::SetBias::Response &res)
 {
   boost::mutex::scoped_lock scoped_lock(lock);
-  rateModel.reset(math::Vector3(req.bias.x, req.bias.y, req.bias.z));
+  rateModel.reset(ignition::math::Vector3d(req.bias.x, req.bias.y, req.bias.z));
   return true;
 }
 
@@ -241,14 +241,14 @@ bool GazeboRosIMU::SetRateBiasCallback(hector_gazebo_plugins::SetBias::Request &
 void GazeboRosIMU::Update()
 {
   // Get Time Difference dt
-  common::Time cur_time = world->GetSimTime();
+  common::Time cur_time = world->SimTime();
   double dt = updateTimer.getTimeSinceLastUpdate().Double();
   boost::mutex::scoped_lock scoped_lock(lock);
 
   // Get Pose/Orientation
-  math::Pose pose = link->GetWorldPose();
+  ignition::math::Pose3d pose = link->WorldPose();
   // math::Vector3 pos = pose.pos + this->offset_.pos;
-  math::Quaternion rot = this->offset_.rot * pose.rot;
+  ignition::math::Quaternion rot = this->offset_.rot * pose.rot;
   rot.Normalize();
 
   // get Gravity
@@ -259,18 +259,16 @@ void GazeboRosIMU::Update()
   // get Acceleration and Angular Rates
   // the result of GetRelativeLinearAccel() seems to be unreliable (sum of forces added during the current simulation step)?
   //accel = myBody->GetRelativeLinearAccel(); // get acceleration in body frame
-  math::Vector3 temp = link->GetWorldLinearVel(); // get velocity in world frame
+  ignition::math::Vector3d temp = link->GetWorldLinearVel(); // get velocity in world frame
   if (dt > 0.0) accel = rot.RotateVectorReverse((temp - velocity) / dt - gravity);
   velocity = temp;
 
   // calculate angular velocity from delta quaternion
-  // note: link->GetRelativeAngularVel() sometimes return nan?
-  // rate  = link->GetRelativeAngularVel(); // get angular rate in body frame
-  math::Quaternion delta = this->orientation.GetInverse() * rot;
+  ignition::math::Quaternion delta = this->orientation.GetInverse() * rot;
   this->orientation = rot;
   if (dt > 0.0) {
     rate = this->offset_.rot.GetInverse()
-           * (2.0 * acos(std::max(std::min(delta.w, 1.0), -1.0)) * math::Vector3(delta.x, delta.y, delta.z).Normalize() / dt);
+           * (2.0 * acos(std::max(std::min(delta.w, 1.0), -1.0)) * ignition::math::Vector3d(delta.x, delta.y, delta.z).Normalize() / dt);
   }
 
   // update sensor models
@@ -288,11 +286,11 @@ void GazeboRosIMU::Update()
 
 
   // apply accelerometer and yaw drift error to orientation (pseudo AHRS)
-  math::Vector3 accelDrift = pose.rot.RotateVector(accelModel.getCurrentBias());
+  ignition::math::Vector3d accelDrift = pose.rot.RotateVector(accelModel.getCurrentBias());
   double yawError = yawModel.getCurrentBias();
-  math::Quaternion orientationError(
-    math::Quaternion(cos(yawError/2), 0.0, 0.0, sin(yawError/2)) *                                         // yaw error
-    math::Quaternion(1.0, 0.5 * accelDrift.y / gravity_length, 0.5 * -accelDrift.x / gravity_length, 0.0)  // roll and pitch error
+  ignition::math::Quaternion orientationError(
+    ignition::math::Quaternion(cos(yawError/2), 0.0, 0.0, sin(yawError/2)) *                                         // yaw error
+    ignition::math::Quaternion(1.0, 0.5 * accelDrift.Y() / gravity_length, 0.5 * -accelDrift.X() / gravity_length, 0.0)  // roll and pitch error
   );
   orientationError.Normalize();
   rot = orientationError * rot;
@@ -358,7 +356,7 @@ void GazeboRosIMU::Update()
     debugPose.pose.orientation.x = imuMsg.orientation.x;
     debugPose.pose.orientation.y = imuMsg.orientation.y;
     debugPose.pose.orientation.z = imuMsg.orientation.z;
-    math::Pose pose = link->GetWorldPose();
+    ignition::math::Pose3d pose = link->GetWorldPose();
     debugPose.pose.position.x = pose.pos.x;
     debugPose.pose.position.y = pose.pos.y;
     debugPose.pose.position.z = pose.pos.z;

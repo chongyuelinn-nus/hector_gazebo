@@ -24,7 +24,8 @@
 
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/common/Time.hh>
-#include <gazebo/math/Quaternion.hh>
+//#include <gazebo/math/Quaternion.hh>
+#include <ignition/math/Quaternion.hh>
 
 // ROS 
 #include <ros/ros.h>
@@ -68,7 +69,7 @@ private:
 
   struct Servo {
     std::string name;
-    math::Vector3 axis;
+    ignition::math::Vector3d axis;
     physics::JointPtr joint;
     float velocity;
     Servo() : velocity() {}
@@ -106,7 +107,7 @@ private:
 
   boost::mutex mutex;
   geometry_msgs::QuaternionStamped::ConstPtr current_cmd;
-  math::Quaternion rotation_;
+  ignition::math::Quaternion rotation_;
 
   // Pointer to the update event connection
   event::ConnectionPtr updateConnection;
